@@ -10,7 +10,9 @@ public class MapReduce {
 
     public static void main(String[] args) {
 
-        ParseCSV.parse("data/movies.csv");
-        SerializeAvro.Serialize(ParseCSV.getMovies());
+        //ParseCSV.parseMovies("data/movies.csv");
+        ParseCSV.parseRatings("data/ratings.csv");
+        //SerializeAvro.serializeMovies("data/movies.avro");
+        SerializeAvro.serializeRatings("data/ratings.avro");
     }
 }

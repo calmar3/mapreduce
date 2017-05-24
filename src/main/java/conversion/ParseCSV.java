@@ -1,6 +1,7 @@
 package conversion;
 
 import model.Movie;
+import model.Rating;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 
@@ -18,12 +19,17 @@ import java.util.UnknownFormatConversionException;
 public class ParseCSV {
 
     private static List<Movie> movies = null;
+    private static List<Rating> ratings = null;
 
     public static List<Movie> getMovies(){
         return movies;
     }
 
-    public static void parse(String path){
+    public static List<Rating> getRatings(){
+        return ratings;
+    }
+
+    public static void parseMovies(String path){
         if (movies == null){
             movies = new ArrayList<Movie>();
         }
@@ -35,6 +41,7 @@ public class ParseCSV {
                 Movie temp = new Movie(record.get("movieId"),record.get("title"),record.get("genres"));
                 movies.add(temp);
             }
+            System.out.println(movies.size());
         }
         catch (UnknownFormatConversionException e) {
             e.printStackTrace();
@@ -43,7 +50,30 @@ public class ParseCSV {
         } catch (IOException e){
             e.printStackTrace();
         }
+    }
 
-
+    public static void parseRatings(String path){
+        if (ratings == null){
+            ratings = new ArrayList<Rating>();
+        }
+        try {
+            Reader in = new FileReader(path);
+            Iterable<CSVRecord> records = null;
+            records = CSVFormat.EXCEL.withFirstRecordAsHeader().parse(in);
+            System.out.println("loop");
+            for (CSVRecord record : records) {
+                Rating temp = new Rating(record.get("userId"),record.get("movieId"),record.get("rating"),record.get("timestamp"));
+                ratings.add(temp);
+                System.gc();
+            }
+            System.out.println(ratings.size());
+        }
+        catch (UnknownFormatConversionException e) {
+            e.printStackTrace();
+        }catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e){
+            e.printStackTrace();
+        }
     }
 }
