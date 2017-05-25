@@ -15,7 +15,7 @@ public class Movie {
     public Movie(){
 
     }
-    public Schema getSchema() {
+    public static Schema getSchema() {
         return ReflectData.get().getSchema(Movie.class);
     }
 
