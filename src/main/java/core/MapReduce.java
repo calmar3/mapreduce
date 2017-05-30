@@ -11,6 +11,5 @@ public class MapReduce {
         CsvToAvro.parseRatings("data/ratings.csv","data/ratings.avro");*/
 
 
-
     }
 }
