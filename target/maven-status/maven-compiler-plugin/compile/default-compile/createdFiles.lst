@@ -1,0 +1,9 @@
+core/QueryOne$AverageReducer.class
+conversion/CsvToAvro.class
+core/QueryOne.class
+model/Rating.class
+core/MapReduce.class
+core/QueryOne$MovieTitleMapper.class
+core/QueryOne$TimestampFilterMapper.class
+model/Movie.class
+model/Wrapper.class

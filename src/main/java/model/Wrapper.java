@@ -1,34 +1,32 @@
 package model;
 
-import org.apache.hadoop.io.FloatWritable;
-import org.apache.hadoop.io.Text;
-
 /**
  * Created by marco on 30/05/17.
  */
-public class Wrapper {
+public class Wrapper{
 
-    private Text text;
-    private FloatWritable floatWritable;
+    private String title;
+    private Float rating;
 
     public Wrapper(){
-        this.text = null;
-        this.floatWritable = null;
+        this.title = null;
+        this.rating = null;
     }
 
-    public Text getText() {
-        return text;
+
+    public String getTitle() {
+        return title;
     }
 
-    public void setText(Text text) {
-        this.text = text;
+    public void setTitle(String title) {
+        this.title = title;
     }
 
-    public FloatWritable getFloatWritable() {
-        return floatWritable;
+    public Float getRating() {
+        return rating;
     }
 
-    public void setFloatWritable(FloatWritable floatWritable) {
-        this.floatWritable = floatWritable;
+    public void setRating(Float rating) {
+        this.rating = rating;
     }
 }
