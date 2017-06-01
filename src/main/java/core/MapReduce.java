@@ -10,6 +10,5 @@ public class MapReduce {
 /*        CsvToAvro.parseMovies("data/movies.csv","data/movies.avro");
         CsvToAvro.parseRatings("data/ratings.csv","data/ratings.avro");*/
 
-
     }
 }

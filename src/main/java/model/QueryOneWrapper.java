@@ -3,12 +3,12 @@ package model;
 /**
  * Created by marco on 30/05/17.
  */
-public class Wrapper{
+public class QueryOneWrapper {
 
     private String title;
     private Float rating;
 
-    public Wrapper(){
+    public QueryOneWrapper(){
         this.title = null;
         this.rating = null;
     }

@@ -1,6 +1,6 @@
 package core;
 
-import model.Wrapper;
+import model.QueryOneWrapper;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -30,15 +30,12 @@ public class QueryOne {
             String line = value.toString().toLowerCase();
 
             String[] parts = line.split(",");
-            Wrapper wrapper = new Wrapper();
+            QueryOneWrapper queryOneWrapper = new QueryOneWrapper();
 
             if (!parts[3].equals("timestamp") && Long.parseLong(parts[3]) > thresholdTimestamp)
-                wrapper.setRating(Float.parseFloat(parts[2]));
-                if (wrapper.getRating() != null){
-
-                    //System.out.println(String.valueOf(wrapper.getFloatWritable().get()));
-                    //System.out.println(mapper.writeValueAsString(wrapper));
-                    context.write(new Text(parts[1]),new Text(mapper.writeValueAsString(wrapper)) );
+                queryOneWrapper.setRating(Float.parseFloat(parts[2]));
+                if (queryOneWrapper.getRating() != null){
+                    context.write(new Text(parts[1]),new Text(mapper.writeValueAsString(queryOneWrapper)) );
                 }
 
         }
@@ -55,9 +52,11 @@ public class QueryOne {
             String line = value.toString().toLowerCase();
 
             String[] parts = line.split(",");
-            Wrapper wrapper = new Wrapper();
-            wrapper.setTitle(parts[1]);
-            context.write(new Text(parts[0]), new Text(mapper.writeValueAsString(wrapper)) );
+            if (!(parts[0].equals("movieId"))){
+                QueryOneWrapper queryOneWrapper = new QueryOneWrapper();
+                queryOneWrapper.setTitle(parts[1]);
+                context.write(new Text(parts[0]), new Text(mapper.writeValueAsString(queryOneWrapper)) );
+            }
         }
     }
 
@@ -69,22 +68,22 @@ public class QueryOne {
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             int sum = 0;
             int count = 0;
-            Wrapper returnWrapper = new Wrapper();
+            QueryOneWrapper returnQueryOneWrapper = new QueryOneWrapper();
             for (Text text : values) {
-                Wrapper wrapper = mapper.readValue(text.toString(), Wrapper.class);
-                if (wrapper.getTitle() != null){
-                    returnWrapper.setTitle(wrapper.getTitle());
+                QueryOneWrapper queryOneWrapper = mapper.readValue(text.toString(), QueryOneWrapper.class);
+                if (queryOneWrapper.getTitle() != null){
+                    returnQueryOneWrapper.setTitle(queryOneWrapper.getTitle());
                 }
-                else if (wrapper.getRating()!=null){
-                    sum += wrapper.getRating();
+                else if (queryOneWrapper.getRating()!=null){
+                    sum += queryOneWrapper.getRating();
                     count++;
                 }
             }
             float threshold = 4;
             float avg = ((float) sum / (float) count);
             if (avg >= threshold){
-                returnWrapper.setRating(avg);
-                context.write(key, new Text(mapper.writeValueAsString(returnWrapper)));
+                returnQueryOneWrapper.setRating(avg);
+                context.write(key, new Text(mapper.writeValueAsString(returnQueryOneWrapper)));
             }
 
         }
