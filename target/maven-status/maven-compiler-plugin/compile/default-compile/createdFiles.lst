@@ -1,4 +1,5 @@
 core/QueryTwo$FilterNoGenresMoviesMapper.class
+model/QueryTwoOutput.class
 core/MapReduce.class
 core/QueryTwo$GenresSplitterMapper.class
 core/QueryThree.class

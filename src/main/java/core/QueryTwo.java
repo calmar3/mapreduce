@@ -1,5 +1,6 @@
 package core;
 
+import model.QueryTwoOutput;
 import model.QueryTwoWrapper;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -17,6 +18,8 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.htrace.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 public class QueryTwo {
@@ -42,7 +45,7 @@ public class QueryTwo {
     /**
      * Calcola la media e la deviazione standard per ogni genere
      */
-    public static class ReducerASD extends Reducer<Text, FloatWritable, Text, FloatWritable> {
+    public static class ReducerASD extends Reducer<Text, FloatWritable, Text, Text> {
 
         private final static ObjectMapper mapper = new ObjectMapper();
 
@@ -50,13 +53,23 @@ public class QueryTwo {
 
             int count = 0;
             int sum = 0;
+            List<Float> list = new ArrayList<Float>();
             for (FloatWritable floatWritable : values){
                 sum += floatWritable.get();
+                list.add(floatWritable.get());
                 count++;
             }
             float avg = (float) sum / (float) count;
-
-            context.write(key,new FloatWritable(avg));
+            float dv = 0;
+            for (Float value : list) {
+                float dm =  value - avg;
+                dv += dm * dm;
+            }
+            double stdev =  Math.sqrt(dv / count);
+            QueryTwoOutput queryTwoOutput = new QueryTwoOutput();
+            queryTwoOutput.setAvg(avg);
+            queryTwoOutput.setStdev(stdev);
+            context.write(key, new Text(mapper.writeValueAsString(queryTwoOutput)));
         }
     }
 
@@ -162,8 +175,10 @@ public class QueryTwo {
             secondJob.setMapperClass(GenresSplitterMapper.class);
             secondJob.setReducerClass(ReducerASD.class);
             secondJob.setNumReduceTasks(2);
+            secondJob.setMapOutputKeyClass(Text.class);
+            secondJob.setMapOutputValueClass(FloatWritable.class);
             secondJob.setOutputKeyClass(Text.class);
-            secondJob.setOutputValueClass(FloatWritable.class);
+            secondJob.setOutputValueClass(Text.class);
             FileInputFormat.addInputPath(secondJob, new Path(args[2] + "/part-r-00000"));
             FileOutputFormat.setOutputPath(secondJob, new Path(args[3]));
             secondJob.setInputFormatClass(TextInputFormat.class);
