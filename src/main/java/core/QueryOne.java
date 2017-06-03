@@ -32,11 +32,12 @@ public class QueryOne {
             String[] parts = line.split(",");
             QueryOneWrapper queryOneWrapper = new QueryOneWrapper();
 
-            if (!parts[3].equals("timestamp") && Long.parseLong(parts[3]) > thresholdTimestamp)
+            if (!parts[3].equals("timestamp") && Long.parseLong(parts[3]) > thresholdTimestamp){
                 queryOneWrapper.setRating(Float.parseFloat(parts[2]));
                 if (queryOneWrapper.getRating() != null){
                     context.write(new Text(parts[1]),new Text(mapper.writeValueAsString(queryOneWrapper)) );
                 }
+            }
 
         }
     }
@@ -66,7 +67,7 @@ public class QueryOne {
 
 
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-            int sum = 0;
+            float sum = 0;
             int count = 0;
             QueryOneWrapper returnQueryOneWrapper = new QueryOneWrapper();
             for (Text text : values) {
@@ -80,7 +81,7 @@ public class QueryOne {
                 }
             }
             float threshold = 4;
-            float avg = ((float) sum / (float) count);
+            float avg = ( sum / (float) count);
             if (avg >= threshold){
                 returnQueryOneWrapper.setRating(avg);
                 context.write(key, new Text(mapper.writeValueAsString(returnQueryOneWrapper)));

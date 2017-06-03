@@ -52,14 +52,14 @@ public class QueryTwo {
         public void reduce(Text key, Iterable<FloatWritable> values, Context context) throws IOException, InterruptedException {
 
             int count = 0;
-            int sum = 0;
+            float sum = 0;
             List<Float> list = new ArrayList<Float>();
             for (FloatWritable floatWritable : values){
                 sum += floatWritable.get();
                 list.add(floatWritable.get());
                 count++;
             }
-            float avg = (float) sum / (float) count;
+            float avg = sum / (float) count;
             float dv = 0;
             for (Float value : list) {
                 float dm =  value - avg;
@@ -171,7 +171,7 @@ public class QueryTwo {
 
         if (code == 0) {
             Job secondJob = Job.getInstance(conf, "RatingASD");
-            secondJob.setJarByClass(QueryOne.class);
+            secondJob.setJarByClass(QueryTwo.class);
             secondJob.setMapperClass(GenresSplitterMapper.class);
             secondJob.setReducerClass(ReducerASD.class);
             secondJob.setNumReduceTasks(2);
