@@ -1,5 +1,6 @@
 package core;
 
+import configuration.AppConfiguration;
 import model.QueryTwoOutput;
 import model.QueryTwoWrapper;
 import org.apache.hadoop.conf.Configuration;
@@ -152,18 +153,19 @@ public class QueryTwo {
 
     public static void main(String[] args) throws Exception {
 
-
+        AppConfiguration.readConfiguration();
         Configuration conf = new Configuration();
         Job firstJob = Job.getInstance(conf, "RatingASD");
         firstJob.setJarByClass(QueryOne.class);
-        MultipleInputs.addInputPath(firstJob, new Path(args[0]),TextInputFormat.class, RatingsMapper.class);
-        MultipleInputs.addInputPath(firstJob, new Path(args[1]),TextInputFormat.class, FilterNoGenresMoviesMapper.class);
+        MultipleInputs.addInputPath(firstJob, new Path(AppConfiguration.RATINGS_FILE),TextInputFormat.class, RatingsMapper.class);
+        MultipleInputs.addInputPath(firstJob, new Path(AppConfiguration.MOVIES_FILE),TextInputFormat.class, FilterNoGenresMoviesMapper.class);
+        firstJob.setNumReduceTasks(AppConfiguration.QUERY_TWO_REDUCER);
         firstJob.setMapOutputKeyClass(Text.class);
         firstJob.setMapOutputValueClass(Text.class);
         firstJob.setReducerClass(JoinerReducer.class);
         firstJob.setOutputKeyClass(Text.class);
         firstJob.setOutputValueClass(NullWritable.class);
-        FileOutputFormat.setOutputPath(firstJob, new Path(args[2]));
+        FileOutputFormat.setOutputPath(firstJob, new Path(AppConfiguration.QUERY_TWO_PARTIAL));
         firstJob.setOutputFormatClass(TextOutputFormat.class);
 
 
@@ -174,13 +176,13 @@ public class QueryTwo {
             secondJob.setJarByClass(QueryTwo.class);
             secondJob.setMapperClass(GenresSplitterMapper.class);
             secondJob.setReducerClass(ReducerASD.class);
-            secondJob.setNumReduceTasks(2);
+            secondJob.setNumReduceTasks(AppConfiguration.QUERY_TWO_REDUCER);
             secondJob.setMapOutputKeyClass(Text.class);
             secondJob.setMapOutputValueClass(FloatWritable.class);
             secondJob.setOutputKeyClass(Text.class);
             secondJob.setOutputValueClass(Text.class);
-            FileInputFormat.addInputPath(secondJob, new Path(args[2] + "/part-r-00000"));
-            FileOutputFormat.setOutputPath(secondJob, new Path(args[3]));
+            FileInputFormat.addInputPath(secondJob, new Path(AppConfiguration.QUERY_TWO_PARTIAL));
+            FileOutputFormat.setOutputPath(secondJob, new Path(AppConfiguration.QUERY_TWO_OUTPUT));
             secondJob.setInputFormatClass(TextInputFormat.class);
             secondJob.setOutputFormatClass(TextOutputFormat.class);
             code = secondJob.waitForCompletion(true) ? 0 : 2;

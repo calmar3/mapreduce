@@ -1,5 +1,6 @@
 package core;
 
+import configuration.AppConfiguration;
 import model.QueryOneWrapper;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -20,7 +21,6 @@ public class QueryOne {
     public static class TimestampFilterMapper extends Mapper<Object, Text, Text, Text> {
 
 
-        private final static long thresholdTimestamp = 946684800;
         private final static ObjectMapper mapper = new ObjectMapper();
 
         @Override
@@ -32,7 +32,7 @@ public class QueryOne {
             String[] parts = line.split(",");
             QueryOneWrapper queryOneWrapper = new QueryOneWrapper();
 
-            if (!parts[3].equals("timestamp") && Long.parseLong(parts[3]) > thresholdTimestamp){
+            if (!parts[3].equals("timestamp") && Long.parseLong(parts[3]) > AppConfiguration.QUERY_ONE_TIMESTAMP){
                 queryOneWrapper.setRating(Float.parseFloat(parts[2]));
                 if (queryOneWrapper.getRating() != null){
                     context.write(new Text(parts[1]),new Text(mapper.writeValueAsString(queryOneWrapper)) );
@@ -92,34 +92,31 @@ public class QueryOne {
 
     public static void main(String[] args) throws Exception {
 
-        /* Create and configure a new MapReduce Job */
+        /**
+         * Read configuration from application.properties file
+         */
+        AppConfiguration.readConfiguration();
         Configuration conf = new Configuration();
         Job job = Job.getInstance(conf, "average rating");
         job.setJarByClass(QueryOne.class);
 
-        MultipleInputs.addInputPath(job, new Path(args[0]),TextInputFormat.class, TimestampFilterMapper.class);
-        MultipleInputs.addInputPath(job, new Path(args[1]),TextInputFormat.class, MovieTitleMapper.class);
-        /* Map function */
+        MultipleInputs.addInputPath(job, new Path(AppConfiguration.RATINGS_FILE),TextInputFormat.class, TimestampFilterMapper.class);
+        MultipleInputs.addInputPath(job, new Path(AppConfiguration.MOVIES_FILE),TextInputFormat.class, MovieTitleMapper.class);
 
-        // if equal to the reduce output, can be omitted
         job.setMapOutputKeyClass(Text.class);
         job.setMapOutputValueClass(Text.class);
-        
 
-        /* Reduce function */
         job.setReducerClass(AverageReducer.class);
-        job.setNumReduceTasks(2);
+        job.setNumReduceTasks(AppConfiguration.QUERY_ONE_REDUCER);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
 
 
 
-        FileOutputFormat.setOutputPath(job, new Path(args[2]));
-        // if these files are different from text files, we can specify the format
-        //job.setInputFormatClass(TextInputFormat.class);
+        FileOutputFormat.setOutputPath(job, new Path(AppConfiguration.QUERY_ONE_OUTPUT));
         job.setOutputFormatClass(TextOutputFormat.class);
 
-        /* Wait for job termination */
+
         System.exit(job.waitForCompletion(true) ? 0 : 1);
 
     }

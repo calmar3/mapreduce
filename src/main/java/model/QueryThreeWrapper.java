@@ -62,17 +62,7 @@ public class QueryThreeWrapper implements Comparable<QueryThreeWrapper>{
                 return -1;
             else if (this.ratingsNumber < o.getRatingsNumber())
                 return 1;
-            return -(this.getTitle().compareTo(o.getTitle()));
+            return (this.getTitle().compareTo(o.getTitle()));
         }
-    }
-
-    @Override
-    public String toString() {
-        return "QueryThreeWrapper{" +
-                "avg=" + avg +
-                ", title='" + title + '\'' +
-                ", ratingsNumber=" + ratingsNumber +
-                ", rating=" + rating +
-                '}';
     }
 }

@@ -1,5 +1,6 @@
 package core;
 
+import configuration.AppConfiguration;
 import model.QueryThreeWrapper;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -16,8 +17,7 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.htrace.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.TreeSet;
 
 /**
  * Created by marco on 01/06/17.
@@ -109,7 +109,7 @@ public class QueryThree {
                 }
             }
             if (count > 0  ){
-                float avg = ((float) sum / (float) count);
+                float avg = ( sum / (float) count);
                 returnQueryThreeWrapper.setAvg(avg);
                 returnQueryThreeWrapper.setRatingsNumber(count);
                 context.write(new Text(mapper.writeValueAsString(returnQueryThreeWrapper)),NullWritable.get());
@@ -119,37 +119,38 @@ public class QueryThree {
         }
     }
 
-    public static class RankReducer extends Reducer<Text, Text, Text, NullWritable> {
+    public static class GeneralRankReducer extends Reducer<Text, Text, Text, NullWritable> {
 
         private final static ObjectMapper mapper = new ObjectMapper();
+        private int limit;
 
+        protected GeneralRankReducer(int limit) {
+            this.limit = limit;
+        }
 
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
 
-
-            List<QueryThreeWrapper> rank = new ArrayList<QueryThreeWrapper>();
-            for (Text value : values){
+            TreeSet<QueryThreeWrapper> rank = new TreeSet<QueryThreeWrapper>();
+            for (Text value : values) {
                 QueryThreeWrapper queryThreeWrapper = mapper.readValue(value.toString(), QueryThreeWrapper.class);
-                if (rank.size() == 0 )
-                    rank.add(queryThreeWrapper);
-                else {
-                    for (QueryThreeWrapper wrapper : rank){
-                        if (wrapper.compareTo(queryThreeWrapper)==1)
-                            rank.add(rank.indexOf(wrapper),queryThreeWrapper);
-                            break;
-                    }
-                    if (rank.size()<10){
-                        rank.add(queryThreeWrapper);
-                    }
-                    if (rank.size()>10){
-                        rank.subList(9,rank.size()-1).clear();
-                    }
-                }
+                rank.add(queryThreeWrapper);
+                if (rank.size() > 10 && limit != -1)
+                    rank.remove(rank.last());
             }
-            for (QueryThreeWrapper wrapper:rank)
-                System.out.println(wrapper.toString());
             context.write(new Text(mapper.writeValueAsString(rank)),NullWritable.get());
 
+        }
+    }
+
+    public static class LimitedRankReducer extends GeneralRankReducer {
+        public LimitedRankReducer() {
+            super(10);
+        }
+    }
+
+    public static class UnlimitedRankReducer extends GeneralRankReducer {
+        public UnlimitedRankReducer() {
+            super(-1);
         }
     }
 
@@ -166,18 +167,37 @@ public class QueryThree {
         }
     }
 
-    public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
+    private static String QUERY_THREE_PARTIAL;
+    private static String QUERY_THREE_OUTPUT_RANK;
+    private static int compareRanks(){
+        return 0;
+    }
+
+    private static int computeRank(int step) throws IOException, ClassNotFoundException, InterruptedException {
+
         Configuration conf = new Configuration();
         Job firstJob = Job.getInstance(conf, "AvgRatingRank");
         firstJob.setJarByClass(QueryThree.class);
-        MultipleInputs.addInputPath(firstJob, new Path(args[0]),TextInputFormat.class, FirstThresholdFilterMapper.class);
-        MultipleInputs.addInputPath(firstJob, new Path(args[1]),TextInputFormat.class, MovieTitleMapper.class);
+        Class thresholdFilter = FirstThresholdFilterMapper.class;
+        Class rankerClass = LimitedRankReducer.class;
+        QUERY_THREE_PARTIAL = AppConfiguration.QUERY_THREE_PARTIAL_LATEST;
+        QUERY_THREE_OUTPUT_RANK = AppConfiguration.QUERY_THREE_PARTIAL_RANK_LATEST;
+        if (step > 0){
+            thresholdFilter = SecondThresholdFilterMapper.class;
+            rankerClass = UnlimitedRankReducer.class;
+            QUERY_THREE_PARTIAL = AppConfiguration.QUERY_THREE_PARTIAL_OLDEST;
+            QUERY_THREE_OUTPUT_RANK = AppConfiguration.QUERY_THREE_PARTIAL_RANK_OLDEST;
+
+        }
+        MultipleInputs.addInputPath(firstJob, new Path(AppConfiguration.RATINGS_FILE),TextInputFormat.class, thresholdFilter);
+        MultipleInputs.addInputPath(firstJob, new Path(AppConfiguration.MOVIES_FILE),TextInputFormat.class, MovieTitleMapper.class);
+        firstJob.setNumReduceTasks(AppConfiguration.QUERY_THREE_REDUCER);
         firstJob.setMapOutputKeyClass(Text.class);
         firstJob.setMapOutputValueClass(Text.class);
         firstJob.setReducerClass(AvgReducer.class);
         firstJob.setOutputKeyClass(Text.class);
         firstJob.setOutputValueClass(NullWritable.class);
-        FileOutputFormat.setOutputPath(firstJob, new Path(args[2]));
+        FileOutputFormat.setOutputPath(firstJob, new Path(QUERY_THREE_PARTIAL));
         firstJob.setOutputFormatClass(TextOutputFormat.class);
 
         int code = firstJob.waitForCompletion(true) ? 0 : 1;
@@ -187,18 +207,29 @@ public class QueryThree {
             Job secondJob = Job.getInstance(conf, "AvgRatingRank");
             secondJob.setJarByClass(QueryThree.class);
             secondJob.setMapperClass(GeneralMapper.class);
-            secondJob.setReducerClass(RankReducer.class);
+            secondJob.setReducerClass(rankerClass);
             secondJob.setMapOutputKeyClass(Text.class);
             secondJob.setMapOutputValueClass(Text.class);
             secondJob.setOutputKeyClass(Text.class);
             secondJob.setOutputValueClass(NullWritable.class);
-            FileInputFormat.addInputPath(secondJob, new Path(args[2] + "/part-r-00000"));
-            FileOutputFormat.setOutputPath(secondJob, new Path(args[3]));
+            FileInputFormat.addInputPath(secondJob, new Path(QUERY_THREE_PARTIAL));
+            FileOutputFormat.setOutputPath(secondJob, new Path(QUERY_THREE_OUTPUT_RANK));
             secondJob.setInputFormatClass(TextInputFormat.class);
             secondJob.setOutputFormatClass(TextOutputFormat.class);
             code = secondJob.waitForCompletion(true) ? 0 : 2;
 
         }
+        return code;
+    }
+
+    public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
+
+        AppConfiguration.readConfiguration();
+        int code = computeRank(0);
+        if (code == 0){
+            computeRank(1);
+        }
         System.exit(code);
+
     }
 }
