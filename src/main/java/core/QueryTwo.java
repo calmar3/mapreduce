@@ -4,6 +4,7 @@ import configuration.AppConfiguration;
 import model.QueryTwoOutput;
 import model.QueryTwoWrapper;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.NullWritable;
@@ -187,7 +188,7 @@ public class QueryTwo {
             secondJob.setOutputFormatClass(TextOutputFormat.class);
             code = secondJob.waitForCompletion(true) ? 0 : 2;
         }
-
+        FileSystem.get(new Configuration()).delete(new Path(AppConfiguration.QUERY_TWO_PARTIAL), true);
         System.exit(code);
 
     }

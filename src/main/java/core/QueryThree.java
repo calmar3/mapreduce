@@ -1,8 +1,10 @@
 package core;
 
 import configuration.AppConfiguration;
+import model.QueryThreeRankOutput;
 import model.QueryThreeWrapper;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
@@ -14,15 +16,98 @@ import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.htrace.fasterxml.jackson.core.type.TypeReference;
 import org.apache.htrace.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.TreeSet;
 
 /**
  * Created by marco on 01/06/17.
  */
 public class QueryThree {
+
+    private static String QUERY_THREE_PARTIAL;
+    private static String QUERY_THREE_OUTPUT_RANK;
+
+    public static abstract class GenericPositionMapper extends Mapper<Object, Text, Text, Text> {
+
+
+        private boolean latest;
+        private final static ObjectMapper mapper = new ObjectMapper();
+
+        protected GenericPositionMapper(boolean latest) {
+            this.latest = latest;
+        }
+
+        @Override
+        public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+
+            String line = value.toString().toLowerCase();
+            String toEmit = new String();
+            List<QueryThreeRankOutput> rank = mapper.readValue(line, new TypeReference<List<QueryThreeRankOutput>>() {});
+            String flag = "o";
+            if (latest){
+                flag = "l";
+            }
+            for ( int i = 0 ; i < rank.size() ; i++){
+
+                toEmit = String.valueOf(i+1) + ','+ flag;
+                context.write(new Text(rank.get(i).getTitle()),new Text(toEmit));
+            }
+        }
+    }
+
+    public static class LatestGenericPositionMapper extends GenericPositionMapper {
+        public LatestGenericPositionMapper() {
+            super(true);
+        }
+    }
+
+    public static class OldestGenericPositionMapper extends GenericPositionMapper {
+        public OldestGenericPositionMapper() {
+            super(false);
+        }
+    }
+
+    public static class ComparatorReducer extends Reducer<Text, Text, Text, NullWritable> {
+
+        private final static ObjectMapper mapper = new ObjectMapper();
+
+        public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+
+            int diff = 0;
+            String latest = "";
+            String oldest = "";
+            for (Text value : values){
+                String line = value.toString().toLowerCase();
+                String[] val = line.split(",");
+                if (val[1].equals("l")){
+                    latest = val[0];
+                }
+                else
+                    oldest = val[0];
+            }
+            if (!latest.equals("")){
+                boolean old = true;
+                if (oldest.equals("")){
+                    old = false;
+                    oldest = "N/A";
+                }
+                else
+                    diff = Integer.valueOf(latest) - Integer.valueOf(oldest);
+                String toReturn = key.toString()+",latest: "+ latest + ",oldest: "+oldest;
+                if (old){
+                    toReturn+= ",diff: " + String.valueOf(-diff);
+                }
+                context.write(new Text(toReturn), NullWritable.get());
+            }
+
+
+        }
+
+    }
 
 
     public static abstract class GenericThresholdFilterMapper extends Mapper<Object, Text, Text, Text> {
@@ -130,10 +215,10 @@ public class QueryThree {
 
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
 
-            TreeSet<QueryThreeWrapper> rank = new TreeSet<QueryThreeWrapper>();
+            TreeSet<QueryThreeRankOutput> rank = new TreeSet<QueryThreeRankOutput>();
             for (Text value : values) {
-                QueryThreeWrapper queryThreeWrapper = mapper.readValue(value.toString(), QueryThreeWrapper.class);
-                rank.add(queryThreeWrapper);
+                QueryThreeRankOutput queryThreeRankOutput = mapper.readValue(value.toString(), QueryThreeRankOutput.class);
+                rank.add(queryThreeRankOutput);
                 if (rank.size() > 10 && limit != -1)
                     rank.remove(rank.last());
             }
@@ -156,24 +241,48 @@ public class QueryThree {
 
     public static class GeneralMapper extends Mapper<Object, Text, Text, Text> {
 
+        private final static ObjectMapper mapper = new ObjectMapper();
 
         @Override
         public void map(Object key, Text value, Context context
         ) throws IOException, InterruptedException {
 
-            context.write(new Text("Rank"),new Text(value));
+            QueryThreeWrapper queryThreeWrapper = mapper.readValue(value.toString(),QueryThreeWrapper.class);
+            QueryThreeRankOutput queryThreeRankOutput = new QueryThreeRankOutput();
+            queryThreeRankOutput.setAvg(queryThreeWrapper.getAvg());
+            queryThreeRankOutput.setNumber(queryThreeWrapper.getRatingsNumber());
+            queryThreeRankOutput.setTitle(queryThreeWrapper.getTitle());
+            context.write(new Text("Rank"),new Text(mapper.writeValueAsString(queryThreeRankOutput)));
 
 
         }
     }
 
-    private static String QUERY_THREE_PARTIAL;
-    private static String QUERY_THREE_OUTPUT_RANK;
-    private static int compareRanks(){
-        return 0;
+
+
+    private static int compareRanks() throws IOException, ClassNotFoundException, InterruptedException {
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "AvgRatingRank");
+        job.setJarByClass(QueryThree.class);
+
+
+        MultipleInputs.addInputPath(job, new Path(AppConfiguration.QUERY_THREE_PARTIAL_RANK_LATEST),TextInputFormat.class, LatestGenericPositionMapper.class);
+        MultipleInputs.addInputPath(job, new Path(AppConfiguration.QUERY_THREE_PARTIAL_RANK_OLDEST),TextInputFormat.class, OldestGenericPositionMapper.class);
+        job.setNumReduceTasks(AppConfiguration.QUERY_THREE_REDUCER);
+        job.setMapOutputValueClass(Text.class);
+        job.setMapOutputKeyClass(Text.class);
+        job.setReducerClass(ComparatorReducer.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(NullWritable.class);
+        FileOutputFormat.setOutputPath(job, new Path(AppConfiguration.QUERY_THREE_OUTPUT));
+        job.setOutputFormatClass(TextOutputFormat.class);
+
+        return job.waitForCompletion(true) ? 0 : 1;
+
     }
 
     private static int computeRank(int step) throws IOException, ClassNotFoundException, InterruptedException {
+
 
         Configuration conf = new Configuration();
         Job firstJob = Job.getInstance(conf, "AvgRatingRank");
@@ -192,8 +301,8 @@ public class QueryThree {
         MultipleInputs.addInputPath(firstJob, new Path(AppConfiguration.RATINGS_FILE),TextInputFormat.class, thresholdFilter);
         MultipleInputs.addInputPath(firstJob, new Path(AppConfiguration.MOVIES_FILE),TextInputFormat.class, MovieTitleMapper.class);
         firstJob.setNumReduceTasks(AppConfiguration.QUERY_THREE_REDUCER);
-        firstJob.setMapOutputKeyClass(Text.class);
         firstJob.setMapOutputValueClass(Text.class);
+        firstJob.setMapOutputKeyClass(Text.class);
         firstJob.setReducerClass(AvgReducer.class);
         firstJob.setOutputKeyClass(Text.class);
         firstJob.setOutputValueClass(NullWritable.class);
@@ -208,8 +317,8 @@ public class QueryThree {
             secondJob.setJarByClass(QueryThree.class);
             secondJob.setMapperClass(GeneralMapper.class);
             secondJob.setReducerClass(rankerClass);
-            secondJob.setMapOutputKeyClass(Text.class);
             secondJob.setMapOutputValueClass(Text.class);
+            secondJob.setMapOutputKeyClass(Text.class);
             secondJob.setOutputKeyClass(Text.class);
             secondJob.setOutputValueClass(NullWritable.class);
             FileInputFormat.addInputPath(secondJob, new Path(QUERY_THREE_PARTIAL));
@@ -227,8 +336,15 @@ public class QueryThree {
         AppConfiguration.readConfiguration();
         int code = computeRank(0);
         if (code == 0){
-            computeRank(1);
+            code = computeRank(1);
+            if (code == 0){
+                compareRanks();
+            }
         }
+        FileSystem.get(new Configuration()).delete(new Path(AppConfiguration.QUERY_THREE_PARTIAL_LATEST), true);
+        FileSystem.get(new Configuration()).delete(new Path(AppConfiguration.QUERY_THREE_PARTIAL_OLDEST), true);
+        FileSystem.get(new Configuration()).delete(new Path(AppConfiguration.QUERY_THREE_PARTIAL_RANK_LATEST), true);
+        FileSystem.get(new Configuration()).delete(new Path(AppConfiguration.QUERY_THREE_PARTIAL_RANK_OLDEST), true);
         System.exit(code);
 
     }

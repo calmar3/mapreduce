@@ -29,6 +29,12 @@ public class AppConfiguration {
     public static Integer QUERY_ONE_REDUCER = 2;
     public static Integer QUERY_TWO_REDUCER = 1;
     public static Integer QUERY_THREE_REDUCER = 1;
+/*    public static Long LATEST_YEAR_START = Long.valueOf(1396310400);
+    public static Long LATEST_YEAR_END = Long.valueOf(1396310400);
+    public static Long OLDEST_YEAR_START = Long.valueOf(1364774400);
+    public static Long OLDEST_YEAR_END = Long.valueOf(1396224000);
+    public static Integer RANK_LIMIT = 10;*/
+
 
 
     public static void readConfiguration() {
@@ -58,6 +64,11 @@ public class AppConfiguration {
             QUERY_ONE_REDUCER = Integer.parseInt(prop.getProperty("QUERY_ONE_REDUCER"));
             QUERY_TWO_REDUCER = Integer.parseInt(prop.getProperty("QUERY_TWO_REDUCER"));
             QUERY_THREE_REDUCER = Integer.parseInt(prop.getProperty("QUERY_THREE_REDUCER"));
+/*            LATEST_YEAR_START = Long.parseLong(prop.getProperty("LATEST_YEAR_START"));
+            LATEST_YEAR_END = Long.parseLong(prop.getProperty("LATEST_YEAR_END"));
+            OLDEST_YEAR_START = Long.parseLong(prop.getProperty("OLDEST_YEAR_START"));
+            OLDEST_YEAR_END = Long.parseLong(prop.getProperty("OLDEST_YEAR_END"));
+            RANK_LIMIT =  Integer.parseInt(prop.getProperty("RANK_LIMIT"));*/
 
         }
         catch (Exception e) {

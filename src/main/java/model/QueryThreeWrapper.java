@@ -3,7 +3,7 @@ package model;
 /**
  * Created by marco on 03/06/17.
  */
-public class QueryThreeWrapper implements Comparable<QueryThreeWrapper>{
+public class QueryThreeWrapper {
 
     private Float avg;
 
@@ -52,17 +52,5 @@ public class QueryThreeWrapper implements Comparable<QueryThreeWrapper>{
         this.rating = rating;
     }
 
-    public int compareTo(QueryThreeWrapper o) {
-        if (this.avg > o.getAvg())
-            return -1;
-        else if (this.avg < o.getAvg())
-            return 1;
-        else{
-            if (this.ratingsNumber > o.getRatingsNumber())
-                return -1;
-            else if (this.ratingsNumber < o.getRatingsNumber())
-                return 1;
-            return (this.getTitle().compareTo(o.getTitle()));
-        }
-    }
+
 }
