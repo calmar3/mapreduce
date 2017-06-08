@@ -18,6 +18,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.htrace.fasterxml.jackson.core.type.TypeReference;
 import org.apache.htrace.fasterxml.jackson.databind.ObjectMapper;
+import test.TestJobs;
 
 import java.io.IOException;
 import java.util.List;
@@ -333,19 +334,26 @@ public class QueryThree {
 
     public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
 
+        if (!args[0].equals("test"))
+            AppConfiguration.readConfiguration();
         AppConfiguration.readConfiguration();
         int code = computeRank(0);
         if (code == 0){
             code = computeRank(1);
             if (code == 0){
-                compareRanks();
+                code = compareRanks();
             }
         }
         FileSystem.get(new Configuration()).delete(new Path(AppConfiguration.QUERY_THREE_PARTIAL_LATEST), true);
         FileSystem.get(new Configuration()).delete(new Path(AppConfiguration.QUERY_THREE_PARTIAL_OLDEST), true);
         FileSystem.get(new Configuration()).delete(new Path(AppConfiguration.QUERY_THREE_PARTIAL_RANK_LATEST), true);
         FileSystem.get(new Configuration()).delete(new Path(AppConfiguration.QUERY_THREE_PARTIAL_RANK_OLDEST), true);
-        System.exit(code);
+        if (args[0].equals("test")){
+
+            TestJobs.failure = code;
+        }
+        else
+            System.exit(code);
 
     }
 }

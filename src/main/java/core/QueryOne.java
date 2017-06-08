@@ -13,6 +13,7 @@ import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.htrace.fasterxml.jackson.databind.ObjectMapper;
+import test.TestJobs;
 
 import java.io.IOException;
 
@@ -95,7 +96,8 @@ public class QueryOne {
         /**
          * Read configuration from application.properties file
          */
-        AppConfiguration.readConfiguration();
+        if (!args[0].equals("test"))
+            AppConfiguration.readConfiguration();
         Configuration conf = new Configuration();
         Job job = Job.getInstance(conf, "average rating");
         job.setJarByClass(QueryOne.class);
@@ -116,8 +118,12 @@ public class QueryOne {
         FileOutputFormat.setOutputPath(job, new Path(AppConfiguration.QUERY_ONE_OUTPUT));
         job.setOutputFormatClass(TextOutputFormat.class);
 
+        int code = job.waitForCompletion(true) ? 0 : 1;
 
-        System.exit(job.waitForCompletion(true) ? 0 : 1);
+        if (args[0].equals("test"))
+            TestJobs.failure = code;
+        else
+            System.exit(code);
 
     }
 }

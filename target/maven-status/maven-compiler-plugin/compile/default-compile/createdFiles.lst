@@ -5,6 +5,7 @@ core/QueryThree$MovieTitleMapper.class
 core/QueryTwo$GenresSplitterMapper.class
 core/QueryThree.class
 core/QueryOne$TimestampFilterMapper.class
+test/TestJobs.class
 model/QueryOneWrapper.class
 core/QueryTwo.class
 core/QueryThree$GenericPositionMapper$1.class

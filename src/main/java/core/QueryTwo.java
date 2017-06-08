@@ -18,6 +18,7 @@ import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.htrace.fasterxml.jackson.databind.ObjectMapper;
+import test.TestJobs;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -154,6 +155,8 @@ public class QueryTwo {
 
     public static void main(String[] args) throws Exception {
 
+        if (!args[0].equals("test"))
+            AppConfiguration.readConfiguration();
         AppConfiguration.readConfiguration();
         Configuration conf = new Configuration();
         Job firstJob = Job.getInstance(conf, "RatingASD");
@@ -189,7 +192,10 @@ public class QueryTwo {
             code = secondJob.waitForCompletion(true) ? 0 : 2;
         }
         FileSystem.get(new Configuration()).delete(new Path(AppConfiguration.QUERY_TWO_PARTIAL), true);
-        System.exit(code);
+        if (args[0].equals("test"))
+            TestJobs.failure = code;
+        else
+            System.exit(code);
 
     }
 }
