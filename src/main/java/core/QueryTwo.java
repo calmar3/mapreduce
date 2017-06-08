@@ -155,7 +155,7 @@ public class QueryTwo {
 
     public static void main(String[] args) throws Exception {
 
-        if (!args[0].equals("test"))
+        if (args.length == 0)
             AppConfiguration.readConfiguration();
         AppConfiguration.readConfiguration();
         Configuration conf = new Configuration();
@@ -192,7 +192,7 @@ public class QueryTwo {
             code = secondJob.waitForCompletion(true) ? 0 : 2;
         }
         FileSystem.get(new Configuration()).delete(new Path(AppConfiguration.QUERY_TWO_PARTIAL), true);
-        if (args[0].equals("test"))
+        if (args.length>0)
             TestJobs.failure = code;
         else
             System.exit(code);

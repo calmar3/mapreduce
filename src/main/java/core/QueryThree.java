@@ -334,7 +334,7 @@ public class QueryThree {
 
     public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
 
-        if (!args[0].equals("test"))
+        if (args.length == 0)
             AppConfiguration.readConfiguration();
         AppConfiguration.readConfiguration();
         int code = computeRank(0);
@@ -348,8 +348,7 @@ public class QueryThree {
         FileSystem.get(new Configuration()).delete(new Path(AppConfiguration.QUERY_THREE_PARTIAL_OLDEST), true);
         FileSystem.get(new Configuration()).delete(new Path(AppConfiguration.QUERY_THREE_PARTIAL_RANK_LATEST), true);
         FileSystem.get(new Configuration()).delete(new Path(AppConfiguration.QUERY_THREE_PARTIAL_RANK_OLDEST), true);
-        if (args[0].equals("test")){
-
+        if (args.length>0){
             TestJobs.failure = code;
         }
         else

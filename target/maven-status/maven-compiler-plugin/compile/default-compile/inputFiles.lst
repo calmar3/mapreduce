@@ -5,6 +5,7 @@
 /Users/marco/Documents/workspace/mapreduce/src/main/java/model/QueryThreeRankOutput.java
 /Users/marco/Documents/workspace/mapreduce/src/main/java/model/QueryTwoOutput.java
 /Users/marco/Documents/workspace/mapreduce/src/main/java/model/QueryTwoWrapper.java
+/Users/marco/Documents/workspace/mapreduce/src/main/java/utils/HBaseClient.java
 /Users/marco/Documents/workspace/mapreduce/src/main/java/model/QueryOneWrapper.java
 /Users/marco/Documents/workspace/mapreduce/src/main/java/configuration/AppConfiguration.java
 /Users/marco/Documents/workspace/mapreduce/src/main/java/core/QueryTwo.java

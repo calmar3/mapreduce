@@ -96,7 +96,7 @@ public class QueryOne {
         /**
          * Read configuration from application.properties file
          */
-        if (!args[0].equals("test"))
+        if (args.length==0)
             AppConfiguration.readConfiguration();
         Configuration conf = new Configuration();
         Job job = Job.getInstance(conf, "average rating");
@@ -120,7 +120,7 @@ public class QueryOne {
 
         int code = job.waitForCompletion(true) ? 0 : 1;
 
-        if (args[0].equals("test"))
+        if (args.length>0)
             TestJobs.failure = code;
         else
             System.exit(code);
