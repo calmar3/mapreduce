@@ -60,6 +60,8 @@ public class HBaseClient {
             System.out.println("HBase is running!");
 
         this.connection = ConnectionFactory.createConnection(conf);
+
+        System.out.println("HBase connection ok, return connection!");
         return connection;
     }
 
@@ -77,15 +79,24 @@ public class HBaseClient {
     public boolean createTable(String tableName, String... columnFamilies) {
 
         try {
+            System.out.println("GettingAdmin ");
+
+            getConnection().close();
 
             Admin admin = getConnection().getAdmin();
+            System.out.println("GetAdmin ok");
+
             HTableDescriptor tableDescriptor = new HTableDescriptor(TableName.valueOf(tableName));
 
             for (String columnFamily : columnFamilies) {
                 tableDescriptor.addFamily(new HColumnDescriptor(columnFamily));
+                System.out.println("Added CF: "+columnFamily);
+
             }
 
             admin.createTable(tableDescriptor);
+            System.out.println("Table: "+tableName+" created");
+
             return true;
 
         } catch (IOException | ServiceException e) {
@@ -203,9 +214,24 @@ public class HBaseClient {
 
         try {
 
+            System.out.println("Getting Admin inner exits");
+
             Admin admin = getConnection().getAdmin();
+
+            System.out.println("Admin ok after getadmin in exist");
+            System.out.println("Admin ok after getadmin in exist");
+
             TableName tableName = TableName.valueOf(table);
-            return admin.tableExists(tableName);
+
+            System.out.println("table: "+table+" tablename: "+tableName.toString()+ " in exist");
+
+            System.out.println("Returning admin.tableExists(tableName) in exist");
+
+
+            boolean bool= admin.tableExists(tableName);
+            System.out.println("Returning bool in exist: "+bool);
+
+            return bool;
 
         } catch (IOException | ServiceException e) {
             e.printStackTrace();
@@ -382,7 +408,8 @@ public class HBaseClient {
      * To delete all columnFamilies a rowKey,  set columnFamily to null
      *
      * @param table         table of interest
-     * @param rowKey        row key to alter
+     * @param rowKey        row key t                context.write(new Text(parts[0]), new Text(mapper.writeValueAsString(queryOneWrapper)) );
+o alter
      * @param columnFamily  columnFamily to alter or delete
      * @param column        column to alter or delete
      * @return              true if the value has been deleted

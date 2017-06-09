@@ -10,8 +10,8 @@ model/QueryOneWrapper.class
 utils/HBaseClient.class
 utils/HBaseClient$1.class
 core/QueryTwo.class
-core/QueryThree$GenericPositionMapper$1.class
 utils/HBaseClient$ALTER_COLUMN_FAMILY.class
+core/QueryThree$GenericPositionMapper$1.class
 core/QueryOne$MovieTitleMapper.class
 core/QueryThree$UnlimitedRankReducer.class
 core/QueryThree$GeneralRankReducer.class
