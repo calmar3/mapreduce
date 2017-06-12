@@ -79,7 +79,7 @@ public class AppConfiguration {
             RANK_LIMIT =  Integer.parseInt(prop.getProperty("RANK_LIMIT"));*/
 
             HBASE_OUTPUT= Boolean.parseBoolean(prop.getProperty("HBASE_OUTPUT"));
-            HADOOP_OUTPUT= Boolean.parseBoolean(prop.getProperty("HBASE_OUTPUT"));
+            HADOOP_OUTPUT= Boolean.parseBoolean(prop.getProperty("HADOOP_OUTPUT"));
             ZOOKEEPER_HOST = prop.getProperty("ZOOKEEPER_HOST");
             ZOOKEEPER_PORT = prop.getProperty("ZOOKEEPER_PORT");
             HBASE_MASTER = prop.getProperty("HBASE_MASTER");

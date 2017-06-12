@@ -33,7 +33,6 @@ public class QueryThree {
     private static String QUERY_THREE_PARTIAL;
     private static String QUERY_THREE_OUTPUT_RANK;
 
-    static HBaseClient hbc;
 
     public static abstract class GenericPositionMapper extends Mapper<Object, Text, Text, Text> {
 
@@ -111,7 +110,7 @@ public class QueryThree {
 
                 if (AppConfiguration.HBASE_OUTPUT == true) {
 
-                    hbc.put("querythreetable", key.toString(), "rc", "latest", latest, "rc", "oldest", oldest, "rc", "diff", Integer.toString(diff));
+                    HBaseClient.hbc.put("querythreetable", key.toString(), "rc", "latest", latest, "rc", "oldest", oldest, "rc", "diff", Integer.toString(diff));
                 }
             }
 
@@ -346,17 +345,8 @@ public class QueryThree {
             AppConfiguration.readConfiguration();
         AppConfiguration.readConfiguration();
 
-        if (AppConfiguration.HBASE_OUTPUT == true) {
-
-            hbc = new HBaseClient();
-            System.out.println("\n******************************************************** \n");
-
-            if (hbc.exists("querythreetable")) {
-                hbc.dropTable("querythreetable");
-            } else {
-                System.out.println("Creating table...");
-                hbc.createTable("querythreetable", "rc");
-            }
+        if (AppConfiguration.HBASE_OUTPUT == true && args.length==0) {
+            HBaseClient.createHBaseTable("querythreetable","rc");
         }
 
         int code = computeRank(0);

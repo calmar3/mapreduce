@@ -28,7 +28,6 @@ import java.util.regex.Pattern;
 
 public class QueryTwo {
 
-    static HBaseClient hbc ;
 
     public static class GenresSplitterMapper extends Mapper<Object, Text, Text, FloatWritable> {
 
@@ -81,7 +80,7 @@ public class QueryTwo {
             }
 
             if (AppConfiguration.HBASE_OUTPUT == true) {
-                hbc.put("querytwotable", key.toString(), "fsi", "average", Float.toString(avg), "fsi", "stdev", Double.toString(stdev));
+                HBaseClient.hbc.put("querytwotable", key.toString(), "fsi", "average", Float.toString(avg), "fsi", "stdev", Double.toString(stdev));
             }
         }
     }
@@ -174,17 +173,8 @@ public class QueryTwo {
         Job firstJob = Job.getInstance(conf, "RatingASD");
         firstJob.setJarByClass(QueryOne.class);
 
-        if (AppConfiguration.HBASE_OUTPUT == true) {
-
-            hbc = new HBaseClient();
-            System.out.println("\n******************************************************** \n");
-
-            if (hbc.exists("querytwotable")) {
-                hbc.dropTable("querytwotable");
-            } else {
-                System.out.println("Creating table...");
-                hbc.createTable("querytwotable", "fsi");
-            }
+        if (AppConfiguration.HBASE_OUTPUT == true && args.length == 0) {
+            HBaseClient.createHBaseTable("querytwotable","fsi");
         }
 
         MultipleInputs.addInputPath(firstJob, new Path(AppConfiguration.RATINGS_FILE),TextInputFormat.class, RatingsMapper.class);

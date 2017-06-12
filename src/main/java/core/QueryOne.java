@@ -19,7 +19,8 @@ import utils.HBaseClient;
 import java.io.IOException;
 
 public class QueryOne {
-    static HBaseClient hbc;
+
+
 
 
     public static class TimestampFilterMapper extends Mapper<Object, Text, Text, Text> {
@@ -91,7 +92,7 @@ public class QueryOne {
                     context.write(key, new Text(mapper.writeValueAsString(returnQueryOneWrapper)));
                 }
                 if (AppConfiguration.HBASE_OUTPUT == true) {
-                    hbc.put("queryonetable", returnQueryOneWrapper.getTitle(), "fi", "id", key.toString(), "fi", "rating", returnQueryOneWrapper.getRating().toString());
+                    HBaseClient.hbc.put("queryonetable", returnQueryOneWrapper.getTitle(), "fi", "id", key.toString(), "fi", "rating", returnQueryOneWrapper.getRating().toString());
                 }
             }
 
@@ -109,17 +110,8 @@ public class QueryOne {
         Job job = Job.getInstance(conf, "average rating");
         job.setJarByClass(QueryOne.class);
 
-        if (AppConfiguration.HBASE_OUTPUT == true) {
-            hbc = new HBaseClient();
-            System.out.println("\n******************************************************** \n");
-
-            if (hbc.exists("queryonetable")) {
-                hbc.dropTable("queryonetable");
-            } else {
-                System.out.println("Creating table...");
-                hbc.createTable("queryonetable", "fi");
-            }
-
+        if (AppConfiguration.HBASE_OUTPUT == true && args.length == 0) {
+            HBaseClient.createHBaseTable("queryonetable","fi");
         }
         MultipleInputs.addInputPath(job, new Path(AppConfiguration.RATINGS_FILE), TextInputFormat.class, TimestampFilterMapper.class);
         MultipleInputs.addInputPath(job, new Path(AppConfiguration.MOVIES_FILE), TextInputFormat.class, MovieTitleMapper.class);

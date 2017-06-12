@@ -20,6 +20,7 @@ public class HBaseClient {
 
 
     private static final boolean DEBUG = true;
+    public static HBaseClient hbc;
 
     private enum ALTER_COLUMN_FAMILY {
         ADD, DELETE
@@ -493,6 +494,18 @@ o alter
         System.out.println("Deleting table...");
         hbc.dropTable("products");
 
+    }
+
+    public static void createHBaseTable(String table, String columnFamilies){
+        hbc = new HBaseClient();
+        System.out.println("\n******************************************************** \n");
+
+        if (hbc.exists(table)) {
+            hbc.dropTable(table);
+        } else {
+            System.out.println("Creating table...");
+            hbc.createTable(table, columnFamilies);
+        }
     }
 
 
