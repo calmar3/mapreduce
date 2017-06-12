@@ -463,39 +463,6 @@ o alter
 
     }
 
-    public static void tableManagementOperations(HBaseClient hbc) throws IOException, ServiceException {
-
-         /* **********************************************************
-         *  Table Management: Create, Alter, Describe, Delete
-         * ********************************************************** */
-        //  Create
-        if (!hbc.exists("products")){
-            System.out.println("Creating table...");
-            hbc.createTable("products", "fam1", "fam2", "fam3");
-        }
-
-        // List tables
-        System.out.println("Listing table...");
-        System.out.println(hbc.listTables());
-
-        //  Alter
-        System.out.println("Altering tables...");
-        System.out.println(hbc.describeTable("products"));
-        hbc.alterColumnFamily(ALTER_COLUMN_FAMILY.DELETE, "products", "fam3");
-        System.out.println(hbc.describeTable("products"));
-        hbc.alterColumnFamily(ALTER_COLUMN_FAMILY.ADD, "products", "fam4");
-        System.out.println(hbc.describeTable("products"));
-
-        //  Scan table
-        System.out.println("Scanning table...");
-        hbc.scanTable("products", null, null);
-
-        //  Drop table
-        System.out.println("Deleting table...");
-        hbc.dropTable("products");
-
-    }
-
     public static void createHBaseTable(String table, String columnFamilies){
         hbc = new HBaseClient();
         System.out.println("\n******************************************************** \n");
