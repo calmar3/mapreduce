@@ -1,6 +1,6 @@
 docker network create --driver bridge hadoop_network
 
-docker run -t -i -p 50075:50075 -p 50061:50060 -d --network=hadoop_network --name=slave1 hadoop-hbase
-docker run -t -i -p 50076:50075 -p 50062:50060 -d --network=hadoop_network --name=slave2 hadoop-hbase
-docker run -t -i -p 50077:50075 -p 50063:50060 -d --network=hadoop_network --name=slave3 hadoop-hbase
-docker run -t -i -p 50070:50070 -p 50060:50060 -p 50030:50030 -p 8088:8088 -p 19888:19888 --network=hadoop_network --name=master -v $PWD/hddata:/data hadoop-hbase
+docker run -t -i -p 50075:50075 -p 50061:50060 -d --network=hadoop_network --name=slave1 sabd-mapred
+docker run -t -i -p 50076:50075 -p 50062:50060 -d --network=hadoop_network --name=slave2 sabd-mapred
+docker run -t -i -p 50077:50075 -p 50063:50060 -d --network=hadoop_network --name=slave3 sabd-mapred
+docker run -t -i -p 50070:50070 -p 50060:50060 -p 50030:50030 -p 8088:8088 -p 19888:19888 --network=hadoop_network --name=master -v $PWD/hddata:/data sabd-mapred

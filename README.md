@@ -2,7 +2,7 @@
 
 `docker pull calmar3/sabd-mapred`
 
-## Manual Configuration
+## Manual Configuration (alternative to quickstart)
 
 ### Download
 
