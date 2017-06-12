@@ -19,7 +19,7 @@ import utils.HBaseClient;
 import java.io.IOException;
 
 public class QueryOne {
-    static HBaseClient hbc ;
+    static HBaseClient hbc;
 
 
     public static class TimestampFilterMapper extends Mapper<Object, Text, Text, Text> {
@@ -36,10 +36,10 @@ public class QueryOne {
             String[] parts = line.split(",");
             QueryOneWrapper queryOneWrapper = new QueryOneWrapper();
 
-            if (!parts[3].equals("timestamp") && Long.parseLong(parts[3]) > AppConfiguration.QUERY_ONE_TIMESTAMP){
+            if (!parts[3].equals("timestamp") && Long.parseLong(parts[3]) > AppConfiguration.QUERY_ONE_TIMESTAMP) {
                 queryOneWrapper.setRating(Float.parseFloat(parts[2]));
-                if (queryOneWrapper.getRating() != null){
-                    context.write(new Text(parts[1]),new Text(mapper.writeValueAsString(queryOneWrapper)) );
+                if (queryOneWrapper.getRating() != null) {
+                    context.write(new Text(parts[1]), new Text(mapper.writeValueAsString(queryOneWrapper)));
                 }
             }
 
@@ -57,10 +57,10 @@ public class QueryOne {
             String line = value.toString().toLowerCase();
 
             String[] parts = line.split(",");
-            if (!(parts[0].equals("movieId"))){
+            if (!(parts[0].equals("movieId"))) {
                 QueryOneWrapper queryOneWrapper = new QueryOneWrapper();
                 queryOneWrapper.setTitle(parts[1]);
-                context.write(new Text(parts[0]), new Text(mapper.writeValueAsString(queryOneWrapper)) );
+                context.write(new Text(parts[0]), new Text(mapper.writeValueAsString(queryOneWrapper)));
             }
         }
     }
@@ -76,22 +76,23 @@ public class QueryOne {
             QueryOneWrapper returnQueryOneWrapper = new QueryOneWrapper();
             for (Text text : values) {
                 QueryOneWrapper queryOneWrapper = mapper.readValue(text.toString(), QueryOneWrapper.class);
-                if (queryOneWrapper.getTitle() != null){
+                if (queryOneWrapper.getTitle() != null) {
                     returnQueryOneWrapper.setTitle(queryOneWrapper.getTitle());
-                }
-                else if (queryOneWrapper.getRating()!=null){
+                } else if (queryOneWrapper.getRating() != null) {
                     sum += queryOneWrapper.getRating();
                     count++;
                 }
             }
             float threshold = 4;
-            float avg = ( sum / (float) count);
-            if (avg >= threshold){
+            float avg = (sum / (float) count);
+            if (avg >= threshold) {
                 returnQueryOneWrapper.setRating(avg);
-                //context.write(key, new Text(mapper.writeValueAsString(returnQueryOneWrapper)));
-                System.out.println("Writing "+returnQueryOneWrapper.getTitle()+" and "+key.toString()+"and"+returnQueryOneWrapper.getRating().toString()+" to HBase");
-
-                hbc.put("queryonetable", returnQueryOneWrapper.getTitle(), "fi","id", key.toString(), "fi", "rating",returnQueryOneWrapper.getRating().toString() );
+                if (AppConfiguration.HADOOP_OUTPUT == true) {
+                    context.write(key, new Text(mapper.writeValueAsString(returnQueryOneWrapper)));
+                }
+                if (AppConfiguration.HBASE_OUTPUT == true) {
+                    hbc.put("queryonetable", returnQueryOneWrapper.getTitle(), "fi", "id", key.toString(), "fi", "rating", returnQueryOneWrapper.getRating().toString());
+                }
             }
 
         }
@@ -102,59 +103,41 @@ public class QueryOne {
         /**
          * Read configuration from application.properties file
          */
-        if (args.length==0)
+        if (args.length == 0)
             AppConfiguration.readConfiguration();
         Configuration conf = new Configuration();
         Job job = Job.getInstance(conf, "average rating");
         job.setJarByClass(QueryOne.class);
-        
-        hbc = new HBaseClient();
-        System.out.println("\n******************************************************** \n");
-        System.out.println("\n**************New jar **************************************** \n");
 
-        if (!hbc.exists("queryonetable")){
-            System.out.println("Creating table...");
-            hbc.createTable("queryonetable", "fi");
+        if (AppConfiguration.HBASE_OUTPUT == true) {
+            hbc = new HBaseClient();
+            System.out.println("\n******************************************************** \n");
+
+            if (hbc.exists("queryonetable")) {
+                hbc.dropTable("queryonetable");
+            } else {
+                System.out.println("Creating table...");
+                hbc.createTable("queryonetable", "fi");
+            }
+
         }
-
-
-        System.out.println("Adding Multiple inputs ...");
-
-
-        MultipleInputs.addInputPath(job, new Path(AppConfiguration.RATINGS_FILE),TextInputFormat.class, TimestampFilterMapper.class);
-        MultipleInputs.addInputPath(job, new Path(AppConfiguration.MOVIES_FILE),TextInputFormat.class, MovieTitleMapper.class);
-
-        System.out.println("Setting  Map output ...");
+        MultipleInputs.addInputPath(job, new Path(AppConfiguration.RATINGS_FILE), TextInputFormat.class, TimestampFilterMapper.class);
+        MultipleInputs.addInputPath(job, new Path(AppConfiguration.MOVIES_FILE), TextInputFormat.class, MovieTitleMapper.class);
 
         job.setMapOutputKeyClass(Text.class);
         job.setMapOutputValueClass(Text.class);
-
-        System.out.println("Setting reducers ...");
 
         job.setReducerClass(AverageReducer.class);
         job.setNumReduceTasks(AppConfiguration.QUERY_ONE_REDUCER);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
 
-
-        System.out.println("Setting outuput ...");
-
-
         FileOutputFormat.setOutputPath(job, new Path(AppConfiguration.QUERY_ONE_OUTPUT));
         job.setOutputFormatClass(TextOutputFormat.class);
 
-        System.out.println("Waiting job ...");
-
-
         int code = job.waitForCompletion(true) ? 0 : 1;
 
-        System.out.println("Job Completed");
-
-
-        System.out.println(hbc.describeTable("queryonetable"));
-
-
-        if (args.length>0)
+        if (args.length > 0)
             TestJobs.failure = code;
         else
             System.exit(code);

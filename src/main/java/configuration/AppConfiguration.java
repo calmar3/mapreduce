@@ -35,6 +35,14 @@ public class AppConfiguration {
     public static Long OLDEST_YEAR_END = Long.valueOf(1396224000);
     public static Integer RANK_LIMIT = 10;*/
 
+    public static Boolean HBASE_OUTPUT= true;
+    public static Boolean HADOOP_OUTPUT= false;
+
+    public static String ZOOKEEPER_HOST = "localhost";
+    public static String ZOOKEEPER_PORT = "2181";
+    public static String HBASE_MASTER  = "localhost:60000";
+
+
 
 
     public static void readConfiguration() {
@@ -69,6 +77,14 @@ public class AppConfiguration {
             OLDEST_YEAR_START = Long.parseLong(prop.getProperty("OLDEST_YEAR_START"));
             OLDEST_YEAR_END = Long.parseLong(prop.getProperty("OLDEST_YEAR_END"));
             RANK_LIMIT =  Integer.parseInt(prop.getProperty("RANK_LIMIT"));*/
+
+            HBASE_OUTPUT= Boolean.parseBoolean(prop.getProperty("HBASE_OUTPUT"));
+            HADOOP_OUTPUT= Boolean.parseBoolean(prop.getProperty("HBASE_OUTPUT"));
+            ZOOKEEPER_HOST = prop.getProperty("ZOOKEEPER_HOST");
+            ZOOKEEPER_PORT = prop.getProperty("ZOOKEEPER_PORT");
+            HBASE_MASTER = prop.getProperty("HBASE_MASTER");
+
+
 
         }
         catch (Exception e) {

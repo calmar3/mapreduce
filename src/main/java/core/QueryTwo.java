@@ -19,6 +19,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.htrace.fasterxml.jackson.databind.ObjectMapper;
 import test.TestJobs;
+import utils.HBaseClient;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -26,6 +27,8 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 public class QueryTwo {
+
+    static HBaseClient hbc ;
 
     public static class GenresSplitterMapper extends Mapper<Object, Text, Text, FloatWritable> {
 
@@ -72,7 +75,14 @@ public class QueryTwo {
             QueryTwoOutput queryTwoOutput = new QueryTwoOutput();
             queryTwoOutput.setAvg(avg);
             queryTwoOutput.setStdev(stdev);
-            context.write(key, new Text(mapper.writeValueAsString(queryTwoOutput)));
+
+            if (AppConfiguration.HADOOP_OUTPUT == true) {
+                context.write(key, new Text(mapper.writeValueAsString(queryTwoOutput)));
+            }
+
+            if (AppConfiguration.HBASE_OUTPUT == true) {
+                hbc.put("querytwotable", key.toString(), "fsi", "average", Float.toString(avg), "fsi", "stdev", Double.toString(stdev));
+            }
         }
     }
 
@@ -147,6 +157,8 @@ public class QueryTwo {
             if (returnQueryTwoWrapper.getGenres()!= null && returnQueryTwoWrapper.getRating()!=null){
                 String toReturn = key + "|" + mapper.writeValueAsString(returnQueryTwoWrapper);
                 context.write(new Text(toReturn),NullWritable.get());
+
+
             }
 
         }
@@ -161,6 +173,20 @@ public class QueryTwo {
         Configuration conf = new Configuration();
         Job firstJob = Job.getInstance(conf, "RatingASD");
         firstJob.setJarByClass(QueryOne.class);
+
+        if (AppConfiguration.HBASE_OUTPUT == true) {
+
+            hbc = new HBaseClient();
+            System.out.println("\n******************************************************** \n");
+
+            if (hbc.exists("querytwotable")) {
+                hbc.dropTable("querytwotable");
+            } else {
+                System.out.println("Creating table...");
+                hbc.createTable("querytwotable", "fsi");
+            }
+        }
+
         MultipleInputs.addInputPath(firstJob, new Path(AppConfiguration.RATINGS_FILE),TextInputFormat.class, RatingsMapper.class);
         MultipleInputs.addInputPath(firstJob, new Path(AppConfiguration.MOVIES_FILE),TextInputFormat.class, FilterNoGenresMoviesMapper.class);
         firstJob.setNumReduceTasks(AppConfiguration.QUERY_TWO_REDUCER);

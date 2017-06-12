@@ -1,6 +1,7 @@
 package utils;
 
 import com.google.protobuf.ServiceException;
+import configuration.AppConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -17,10 +18,6 @@ import java.util.List;
 
 public class HBaseClient {
 
-    /* Configuration Parameters */
-    private static final String ZOOKEEPER_HOST = "localhost";
-    private static final String ZOOKEEPER_PORT = "2181";
-    private static final String HBASE_MASTER  = "localhost:60000";
 
     private static final boolean DEBUG = true;
 
@@ -49,9 +46,9 @@ public class HBaseClient {
             Logger.getRootLogger().setLevel(Level.ERROR);
 
         Configuration conf  = HBaseConfiguration.create();
-        conf.set("hbase.zookeeper.quorum", ZOOKEEPER_HOST);
-        conf.set("hbase.zookeeper.property.clientPort", ZOOKEEPER_PORT);
-        conf.set("hbase.master", HBASE_MASTER);
+        conf.set("hbase.zookeeper.quorum", AppConfiguration.ZOOKEEPER_HOST);
+        conf.set("hbase.zookeeper.property.clientPort", AppConfiguration.ZOOKEEPER_PORT);
+        conf.set("hbase.master", AppConfiguration.HBASE_MASTER);
 
         /* Check configuration */
         HBaseAdmin.checkHBaseAvailable(conf);
@@ -60,8 +57,6 @@ public class HBaseClient {
             System.out.println("HBase is running!");
 
         this.connection = ConnectionFactory.createConnection(conf);
-
-        System.out.println("HBase connection ok, return connection!");
         return connection;
     }
 
@@ -79,12 +74,10 @@ public class HBaseClient {
     public boolean createTable(String tableName, String... columnFamilies) {
 
         try {
-            System.out.println("GettingAdmin ");
 
             getConnection().close();
 
             Admin admin = getConnection().getAdmin();
-            System.out.println("GetAdmin ok");
 
             HTableDescriptor tableDescriptor = new HTableDescriptor(TableName.valueOf(tableName));
 
@@ -214,22 +207,13 @@ public class HBaseClient {
 
         try {
 
-            System.out.println("Getting Admin inner exits");
-
             Admin admin = getConnection().getAdmin();
-
-            System.out.println("Admin ok after getadmin in exist");
-            System.out.println("Admin ok after getadmin in exist");
 
             TableName tableName = TableName.valueOf(table);
 
             System.out.println("table: "+table+" tablename: "+tableName.toString()+ " in exist");
 
-            System.out.println("Returning admin.tableExists(tableName) in exist");
-
-
             boolean bool= admin.tableExists(tableName);
-            System.out.println("Returning bool in exist: "+bool);
 
             return bool;
 
@@ -457,7 +441,7 @@ o alter
      */
     public void scanTable(String table, String columnFamily, String column) throws IOException, ServiceException {
 
-        Table products = getConnection().getTable(TableName.valueOf(table));
+        Table t = getConnection().getTable(TableName.valueOf(table));
 
         Scan scan = new Scan();
 
@@ -467,7 +451,7 @@ o alter
         else if (columnFamily != null)
             scan.addFamily(b(columnFamily));
 
-        ResultScanner scanner = products.getScanner(scan);
+        ResultScanner scanner = t.getScanner(scan);
 
         // Reading values from scan result
         for (Result result = scanner.next(); result != null; result = scanner.next()){
@@ -511,134 +495,5 @@ o alter
 
     }
 
-    public static void simpleDataManipulationOperations(HBaseClient hbc) throws IOException, ServiceException {
 
-        /* **********************************************************
-         *  Data Management: Put, Get, Delete, Scan, Truncate
-         * ********************************************************** */
-
-        /* Create */
-        System.out.println("\n******************************************************** \n");
-        if (!hbc.exists("products")){
-            System.out.println("Creating table...");
-            hbc.createTable("products", "fam1", "fam2", "fam3");
-        }
-
-        /* Put */
-        System.out.println("\n ------------------\n");
-        System.out.println("Adding value: row1:fam1:col1:val1");
-        hbc.put("products", "row1", "fam1", "col1", "val1");
-        System.out.println("Adding value: row1:fam1:col2:val2");
-        hbc.put("products", "row1", "fam1", "col2", "val2");
-
-        /* Get */
-        String v1 = hbc.get("products", "row1", "fam1", "col1");
-        String v2 = hbc.get("products", "row1", "fam1", "col2");
-        System.out.println("Retrieving values : " + v1 + "; " + v2);
-        System.out.println("\n ------------------\n");
-
-
-        /* Update a row (the row key is unique) */
-        System.out.println("Updating value: row1:fam1:col1:val1 to row1:fam1:col1:val3");
-        hbc.put("products", "row1", "fam1", "col1", "val3");
-
-        v1 = hbc.get("products", "row1", "fam1", "col1");
-        v2 = hbc.get("products", "row1", "fam1", "col2");
-        System.out.println("Retrieving values : " + v1 + "; " + v2);
-        System.out.println("\n ------------------\n");
-
-
-        /* Delete a column (with a previous value stored within) */
-        System.out.println("Deleting value: row1:fam1:col1");
-        v1 = hbc.get("products", "row1", "fam1", "col1");
-        System.out.println("Retrieving value row1:fam1:col1 (pre-delete): " + v1);
-        hbc.delete("products", "row1", "fam1", "col1");
-        v1 = hbc.get("products", "row1", "fam1", "col1");
-        System.out.println("Retrieving value row1:fam1:col1  (post-1st-delete): " + v1);
-        hbc.delete("products", "row1", "fam1", "col1");
-        v1 = hbc.get("products", "row1", "fam1", "col1");
-        System.out.println("Retrieving value row1:fam1:col1  (post-2nd-delete): " + v1);
-        System.out.println("\n ------------------\n");
-
-        /* Scanning table */
-        System.out.println("Scanning table...");
-        hbc.scanTable("products", null, null);
-
-        /* Truncate */
-        System.out.println("Truncating data... ");
-        hbc.truncateTable("products", true);
-        System.out.println("\n ------------------\n");
-
-    }
-
-    public static void otherDataManipulationOperations(HBaseClient hbc) throws IOException, ServiceException {
-
-        /* **********************************************************
-         *  Data Management: Special Cases of Put, Delete
-         * ********************************************************** */
-
-        /* Data manipulation, special cases */
-
-        /* try to insert a row for a not existing column family */
-        System.out.println("Insert a key with a not existing column family");
-        boolean res = hbc.put("products", "row2", "fam100", "col1", "val1");
-        System.out.println(" result: " + res);
-        System.out.println("\n ------------------\n");
-
-
-        /* Delete: different columns, same column family */
-        System.out.println(" # Inserting row2:fam1:col1 and row2:fam1:col2 ");
-        hbc.put("products", "row2", "fam1", "col1", "val1");
-        hbc.put("products", "row2", "fam1", "col2", "val2");
-        System.out.println("Deleting data of different columns, but same column family... ");
-        hbc.delete("products", "row2", "fam1", "col1");
-        String v1 = hbc.get("products", "row2", "fam1", "col1");
-        String v2 = hbc.get("products", "row2", "fam1", "col2");
-        System.out.println("Retrieving values (post-delete of col1): " + v1 + "; " + v2);
-
-        System.out.println("\n ------------------\n");
-
-        /* Delete: column family */
-        System.out.println(" # Inserting row2:fam1:col2 (same family of existing row)");
-        hbc.put("products", "row2", "fam1", "col2", "val2");
-        System.out.println(" # Inserting row2:fam2:col3 (same family of existing row)");
-        hbc.put("products", "row2", "fam2", "col3", "val3");
-        System.out.println("Deleting a column family for a data... ");
-        hbc.delete("products", "fam1", "fam1", null);
-        v1 = hbc.get("products", "row2", "fam1", "col1");
-        v2 = hbc.get("products", "row2", "fam1", "col2");
-        String v3 = hbc.get("products", "row2", "fam2", "col3");
-        System.out.println("Retrieving values : " + v1 + "; " + v2 + "; " + v3);
-
-        System.out.println("\n ------------------\n");
-
-
-        /* Delete: entire row key */
-        System.out.println("Deleting the whole row (row2)... ");
-        hbc.delete("products", "row2", null, null);
-        v1 = hbc.get("products", "row2", "fam1", "col1");
-        v2 = hbc.get("products", "row2", "fam1", "col2");
-        v3 = hbc.get("products", "row2", "fam2", "col3");
-        System.out.println("Retrieving values : " + v1 + "; " + v2 + "; " + v3);
-
-    }
-
-    public static void main(String[] args) throws IOException, ServiceException {
-
-        HBaseClient hbc = new HBaseClient();
-
-        /* **********************************************************
-         *  Table Management: Create, Alter, Describe, Delete
-         * ********************************************************** */
-        tableManagementOperations(hbc);
-
-        /* **********************************************************
-         *  Data Management: Put, Get, Delete, Scan, Truncate
-         * ********************************************************** */
-        simpleDataManipulationOperations(hbc);
-
-        /* Data manipulation, special cases */
-        otherDataManipulationOperations(hbc);
-
-    }
 }
