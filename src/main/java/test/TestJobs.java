@@ -20,9 +20,11 @@ public class TestJobs {
 
     public static void main(String[] args) throws Exception {
         AppConfiguration.readConfiguration();
-        HBaseClient.createHBaseTable("queryonetable","fi");
-        HBaseClient.createHBaseTable("querytwotable","fsi");
-        HBaseClient.createHBaseTable("querythreetable","rc");
+        if (AppConfiguration.HBASE_OUTPUT){
+            HBaseClient.createHBaseTable("queryonetable","fi");
+            HBaseClient.createHBaseTable("querytwotable","fsi");
+            HBaseClient.createHBaseTable("querythreetable","rc");
+        }
         System.out.println("\n\n\n test start \n\n\n");
         String[] params = {"test"};
         long start = new Date().getTime();
@@ -55,9 +57,11 @@ public class TestJobs {
                 }
             }
         }
-        HBaseClient.hbc.scanTable("queryonetable",null,null);
-        HBaseClient.hbc.scanTable("querytwotable",null,null);
-        HBaseClient.hbc.scanTable("querythreetable",null,null);
+        if (AppConfiguration.HBASE_OUTPUT){
+            HBaseClient.hbc.scanTable("queryonetable",null,null);
+            HBaseClient.hbc.scanTable("querytwotable",null,null);
+            HBaseClient.hbc.scanTable("querythreetable",null,null);
+        }
         System.exit(failure);
 
 
